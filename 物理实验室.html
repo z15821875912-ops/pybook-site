@@ -1,0 +1,182 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<title>教学&gt;物理引擎&gt;弹球实验室</title>
+<style>
+body{background:#1e1e2e;color:#cdd6f4;font-family:"Microsoft YaHei UI",sans-serif;padding:40px;line-height:1.6}
+a{color:#89dceb}
+</style>
+</head>
+<body>
+<canvas id="pybook-canvas-1" width="400" height="300"></canvas>
+<script>
+const ctx1 = document.getElementById('pybook-canvas-1').getContext('2d');
+const PYBK_KEYS = {};
+const PYBK_PRESSED = new Set();
+function PYBK_KEYMAP(n) { var m = {left:"ArrowLeft", right:"ArrowRight", up:"ArrowUp", down:"ArrowDown", space:" ", enter:"Enter", esc:"Escape", 左:"ArrowLeft", 右:"ArrowRight", 上:"ArrowUp", 下:"ArrowDown", 空格:" ", 回车:"Enter"}; return m[n] !== undefined ? m[n] : n; }
+function PYBK_NUM(v) { var n = parseFloat(v); if (!isNaN(n)) return n; try { var a = JSON.parse(v); if (Array.isArray(a)) return a; } catch (e) {} return v; }
+document.addEventListener("keydown", function(e) { if (!PYBK_KEYS[e.key]) PYBK_PRESSED.add(e.key); PYBK_KEYS[e.key] = true; if (e.key.indexOf("Arrow") === 0 || e.key === " ") e.preventDefault(); });
+document.addEventListener("keyup", function(e) { PYBK_KEYS[e.key] = false; });
+const PYBK_IMGS = {};
+let V_重力 = PYBK_NUM("0.25");
+let V_弹性 = PYBK_NUM("0.82");
+let V_数量 = PYBK_NUM("0");
+let V_队vy = PYBK_NUM("[]");
+let V_队vx = PYBK_NUM("[]");
+let V_队x = PYBK_NUM("[]");
+let V_队y = PYBK_NUM("[]");
+let V_径 = 0;
+let V_dx = 0;
+let V_dy = 0;
+let V_距 = 0;
+let V_碰径 = 0;
+let V_nx = 0;
+let V_ny = 0;
+let V_叠 = 0;
+let V_接近 = 0;
+let V_cr = 0;
+let V_cg = 0;
+let V_cb = 0;
+let V_风 = PYBK_NUM("0");
+let V_队径 = PYBK_NUM("[]");
+let V_队色 = PYBK_NUM("[]");
+let V_色表 = PYBK_NUM("[[80, 250, 123], [255, 200, 80], [120, 180, 255], [255, 120, 180], [200, 160, 255]]");
+function PYBK_LIVE() {
+  ctx1.fillStyle = 'rgb(' + (18) + ',' + (21) + ',' + (32) + ')';
+  ctx1.fillRect(0, 0, 400, 300);
+  if ((PYBK_KEYS[PYBK_KEYMAP("up")] === true)) {
+  V_重力 = (V_重力 + 0.02);
+  }
+  if ((PYBK_KEYS[PYBK_KEYMAP("down")] === true)) {
+  V_重力 = (V_重力 - 0.02);
+  if ((V_重力 < 0)) {
+  V_重力 = 0;
+  }
+  }
+  if ((PYBK_KEYS[PYBK_KEYMAP("right")] === true)) {
+  V_弹性 = (V_弹性 + 0.01);
+  if ((V_弹性 > 1)) {
+  V_弹性 = 1;
+  }
+  }
+  if ((PYBK_KEYS[PYBK_KEYMAP("left")] === true)) {
+  V_弹性 = (V_弹性 - 0.01);
+  if ((V_弹性 < 0)) {
+  V_弹性 = 0;
+  }
+  }
+  if ((PYBK_PRESSED.has(PYBK_KEYMAP("space")) && (V_数量 < 10))) {
+  V_队x.push(((60) + Math.floor(Math.random() * ((340) - (60) + 1))));
+  V_队y.push(((30) + Math.floor(Math.random() * ((80) - (30) + 1))));
+  V_队vx.push(((((-40)) + Math.floor(Math.random() * ((40) - ((-40)) + 1))) / 10));
+  V_队vy.push(0);
+  V_队径.push(((9) + Math.floor(Math.random() * ((16) - (9) + 1))));
+  V_队色.push(((0) + Math.floor(Math.random() * ((4) - (0) + 1))));
+  V_数量 = (V_数量 + 1);
+  }
+  if (PYBK_PRESSED.has(PYBK_KEYMAP("c"))) {
+  V_数量 = 0;
+  }
+  for (let V_i = 0; V_i < V_数量; V_i++) {
+  V_队vy[V_i] = ((V_队vy)[V_i] + V_重力);
+  V_队vx[V_i] = ((V_队vx)[V_i] + V_风);
+  V_队x[V_i] = ((V_队x)[V_i] + (V_队vx)[V_i]);
+  V_队y[V_i] = ((V_队y)[V_i] + (V_队vy)[V_i]);
+  }
+  for (let V_i = 0; V_i < V_数量; V_i++) {
+  V_径 = (V_队径)[V_i];
+  if (((V_队x)[V_i] < (10 + V_径))) {
+  V_队x[V_i] = (10 + V_径);
+  V_队vx[V_i] = ((-(V_队vx)[V_i]) * V_弹性);
+  }
+  if (((V_队x)[V_i] > (390 - V_径))) {
+  V_队x[V_i] = (390 - V_径);
+  V_队vx[V_i] = ((-(V_队vx)[V_i]) * V_弹性);
+  }
+  if (((V_队y)[V_i] < (10 + V_径))) {
+  V_队y[V_i] = (10 + V_径);
+  V_队vy[V_i] = ((-(V_队vy)[V_i]) * V_弹性);
+  }
+  if (((V_队y)[V_i] > (270 - V_径))) {
+  V_队y[V_i] = (270 - V_径);
+  V_队vy[V_i] = ((-(V_队vy)[V_i]) * V_弹性);
+  V_队vx[V_i] = ((V_队vx)[V_i] * 0.96);
+  }
+  }
+  for (let V_i = 0; V_i < V_数量; V_i++) {
+  for (let V_j = 0; V_j < V_数量; V_j++) {
+  if ((V_j > V_i)) {
+  V_dx = ((V_队x)[V_j] - (V_队x)[V_i]);
+  V_dy = ((V_队y)[V_j] - (V_队y)[V_i]);
+  V_距 = Math.sqrt(((V_dx * V_dx) + (V_dy * V_dy)));
+  V_碰径 = ((V_队径)[V_i] + (V_队径)[V_j]);
+  if (((V_距 < V_碰径) && (V_距 > 0.01))) {
+  V_nx = (V_dx / V_距);
+  V_ny = (V_dy / V_距);
+  V_叠 = ((V_碰径 - V_距) / 2);
+  V_队x[V_i] = ((V_队x)[V_i] - (V_nx * V_叠));
+  V_队y[V_i] = ((V_队y)[V_i] - (V_ny * V_叠));
+  V_队x[V_j] = ((V_队x)[V_j] + (V_nx * V_叠));
+  V_队y[V_j] = ((V_队y)[V_j] + (V_ny * V_叠));
+  V_接近 = ((((V_队vx)[V_i] - (V_队vx)[V_j]) * V_nx) + (((V_队vy)[V_i] - (V_队vy)[V_j]) * V_ny));
+  if ((V_接近 > 0)) {
+  V_队vx[V_i] = ((V_队vx)[V_i] - ((V_接近 * V_nx) * V_弹性));
+  V_队vy[V_i] = ((V_队vy)[V_i] - ((V_接近 * V_ny) * V_弹性));
+  V_队vx[V_j] = ((V_队vx)[V_j] + ((V_接近 * V_nx) * V_弹性));
+  V_队vy[V_j] = ((V_队vy)[V_j] + ((V_接近 * V_ny) * V_弹性));
+  }
+  }
+  }
+  }
+  }
+  ctx1.fillStyle = 'rgb(' + (70) + ',' + (80) + ',' + (70) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.fillRect(10, 270, 380, 3);
+  for (let V_i = 0; V_i < V_数量; V_i++) {
+  V_cr = ((V_色表)[(V_队色)[V_i]])[0];
+  V_cg = ((V_色表)[(V_队色)[V_i]])[1];
+  V_cb = ((V_色表)[(V_队色)[V_i]])[2];
+  ctx1.fillStyle = 'rgb(' + (V_cr) + ',' + (V_cg) + ',' + (V_cb) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.beginPath();
+  ctx1.arc((V_队x)[V_i], (V_队y)[V_i], (V_队径)[V_i], 0, Math.PI * 2);
+  ctx1.fill();
+  ctx1.fillStyle = 'rgb(' + (255) + ',' + (255) + ',' + (160) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.beginPath();
+  ctx1.moveTo((V_队x)[V_i], (V_队y)[V_i]);
+  ctx1.lineTo(((V_队x)[V_i] + ((V_队vx)[V_i] * 6)), ((V_队y)[V_i] + ((V_队vy)[V_i] * 6)));
+  ctx1.stroke();
+  }
+  ctx1.fillStyle = 'rgb(' + (255) + ',' + (255) + ',' + (255) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.font = (20) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText(("物理引擎实验室"), (16), (14));
+  ctx1.fillStyle = 'rgb(' + (150) + ',' + (210) + ',' + (255) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.font = (13) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText(("第一步 重力: 每帧 vy += 重力"), (16), (42));
+  ctx1.font = (13) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText(("第二步 积分: x += vx  y += vy"), (16), (60));
+  ctx1.font = (13) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText(("第三步 反弹: v = -v × 弹性"), (16), (78));
+  ctx1.fillStyle = 'rgb(' + (255) + ',' + (220) + ',' + (120) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.font = (13) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText((("重力 " + V_重力)), (230), (42));
+  ctx1.font = (13) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText((("弹性 " + V_弹性)), (230), (60));
+  ctx1.font = (13) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText((("小球 " + V_数量 + " / 10")), (230), (78));
+  ctx1.fillStyle = 'rgb(' + (160) + ',' + (170) + ',' + (200) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.font = (12) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText(("空格 生成小球 · C 清空 · ↑↓ 调重力 · ←→ 调弹性 · 黄线 = 速度方向"), (16), (284));
+  PYBK_PRESSED.clear();
+}
+PYBK_LIVE();
+setInterval(PYBK_LIVE, 1000 / 60);
+</script>
+</body>
+</html>
