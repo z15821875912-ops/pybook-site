@@ -18,7 +18,58 @@ function PYBK_KEYMAP(n) { var m = {left:"ArrowLeft", right:"ArrowRight", up:"Arr
 function PYBK_NUM(v) { var n = parseFloat(v); if (!isNaN(n)) return n; try { var a = JSON.parse(v); if (Array.isArray(a)) return a; } catch (e) {} return v; }
 document.addEventListener("keydown", function(e) { if (!PYBK_KEYS[e.key]) PYBK_PRESSED.add(e.key); PYBK_KEYS[e.key] = true; if (e.key.indexOf("Arrow") === 0 || e.key === " ") e.preventDefault(); });
 document.addEventListener("keyup", function(e) { PYBK_KEYS[e.key] = false; });
-const PYBK_IMGS = {};
+(function(){ var cv = document.getElementById("pybook-canvas-1"); function hw_mm(e){ var r = cv.getBoundingClientRect(); window.__pybkMX = (e.clientX - r.left) * 400 / r.width; window.__pybkMY = (e.clientY - r.top) * 300 / r.height; } cv.addEventListener("mousemove", hw_mm); cv.addEventListener("mousedown", function(e){ hw_mm(e); window.__pybkMD = true; window.__pybkMH = true; }); document.addEventListener("mouseup", function(){ window.__pybkMD = false; });})();
+window.__pybkUI = { focus: null, drag: null, text: {}, val: {} };
+window.__pybkUI_KEY = function(e) {
+  if (!window.__pybkUI.focus) return;
+  var t = window.__pybkUI.text[window.__pybkUI.focus] || '';
+  if (e.key === 'Backspace') { window.__pybkUI.text[window.__pybkUI.focus] = t.slice(0, -1); }
+  else if (e.key.length === 1 && !e.ctrlKey && !e.metaKey) { window.__pybkUI.text[window.__pybkUI.focus] = t + e.key; }
+};
+window.__pybkUI_BTN = function(ctx, x, y, w, h, label) {
+  var mx = window.__pybkMX || 0, my = window.__pybkMY || 0;
+  var over = mx >= x && mx <= x + w && my >= y && my <= y + h;
+  ctx.fillStyle = over ? 'rgb(90,170,255)' : 'rgb(60,120,220)';
+  ctx.fillRect(x, y, w, h);
+  ctx.fillStyle = '#ffffff';
+  ctx.font = '16px sans-serif';
+  var tw = ctx.measureText(label).width;
+  ctx.fillText(label, x + w / 2 - tw / 2, y + h / 2 + 6);
+  return (over && window.__pybkMH) ? 1 : 0;
+};
+window.__pybkUI_INP = function(ctx, id, x, y, w, h) {
+  var mx = window.__pybkMX || 0, my = window.__pybkMY || 0;
+  var over = mx >= x && mx <= x + w && my >= y && my <= y + h;
+  if (window.__pybkMH && over) window.__pybkUI.focus = id;
+  var focused = window.__pybkUI.focus === id;
+  var txt = window.__pybkUI.text[id] || '';
+  ctx.fillStyle = '#ffffff'; ctx.fillRect(x, y, w, h);
+  ctx.strokeStyle = focused ? '#50fa7b' : '#8899bb'; ctx.lineWidth = 2;
+  ctx.strokeRect(x, y, w, h);
+  ctx.fillStyle = '#222222'; ctx.font = '15px sans-serif';
+  var caret = (focused && (Math.floor(Date.now() / 400) % 2 === 0)) ? '|' : '';
+  ctx.fillText(txt + caret, x + 8, y + h / 2 + 5);
+  return txt;
+};
+window.__pybkUI_SLD = function(ctx, id, x, y, w, lo, hi, val) {
+  var mx = window.__pybkMX || 0, my = window.__pybkMY || 0;
+  var over = mx >= x - 10 && mx <= x + w + 10 && my >= y - 12 && my <= y + 12;
+  if (window.__pybkUI.val[id] === undefined) window.__pybkUI.val[id] = val;
+  if (window.__pybkMH && over) window.__pybkUI.drag = id;
+  if (window.__pybkUI.drag === id) {
+    if (!window.__pybkMD) window.__pybkUI.drag = null;
+    else { var t = (mx - x) / w; t = Math.max(0, Math.min(1, t)); window.__pybkUI.val[id] = lo + t * (hi - lo); }
+  }
+  var v = window.__pybkUI.val[id];
+  var kn = x + w * (v - lo) / (hi - lo);
+  ctx.strokeStyle = '#8899bb'; ctx.lineWidth = 4;
+  ctx.beginPath(); ctx.moveTo(x, y); ctx.lineTo(x + w, y); ctx.stroke();
+  ctx.fillStyle = '#50fa7b';
+  ctx.beginPath(); ctx.arc(kn, y, 8, 0, Math.PI * 2); ctx.fill();
+  ctx.fillStyle = '#ffffff'; ctx.font = '13px sans-serif';
+  ctx.fillText(String(Math.round(v * 100) / 100), x + w + 14, y + 5);
+  return v;
+};const PYBK_IMGS = {};
 let V_重力 = PYBK_NUM("0.25");
 let V_弹性 = PYBK_NUM("0.82");
 let V_数量 = PYBK_NUM("0");
@@ -38,6 +89,7 @@ let V_接近 = 0;
 let V_cr = 0;
 let V_cg = 0;
 let V_cb = 0;
+let V_访客 = 0;
 let V_风 = PYBK_NUM("0");
 let V_队径 = PYBK_NUM("[]");
 let V_队色 = PYBK_NUM("[]");
@@ -45,28 +97,12 @@ let V_色表 = PYBK_NUM("[[80, 250, 123], [255, 200, 80], [120, 180, 255], [255,
 function PYBK_LIVE() {
   ctx1.fillStyle = 'rgb(' + (18) + ',' + (21) + ',' + (32) + ')';
   ctx1.fillRect(0, 0, 400, 300);
-  if ((PYBK_KEYS[PYBK_KEYMAP("up")] === true)) {
-  V_重力 = (V_重力 + 0.02);
+  V_重力 = __pybkUI_SLD(ctx1, 1, 230, 46, 110, 0, 1, 0);
+  V_弹性 = __pybkUI_SLD(ctx1, 2, 230, 64, 110, 0, 1, 0);
+  if (__pybkUI_BTN(ctx1, 350, 36, 44, 26, "清空")) {
+  V_数量 = 0;
   }
-  if ((PYBK_KEYS[PYBK_KEYMAP("down")] === true)) {
-  V_重力 = (V_重力 - 0.02);
-  if ((V_重力 < 0)) {
-  V_重力 = 0;
-  }
-  }
-  if ((PYBK_KEYS[PYBK_KEYMAP("right")] === true)) {
-  V_弹性 = (V_弹性 + 0.01);
-  if ((V_弹性 > 1)) {
-  V_弹性 = 1;
-  }
-  }
-  if ((PYBK_KEYS[PYBK_KEYMAP("left")] === true)) {
-  V_弹性 = (V_弹性 - 0.01);
-  if ((V_弹性 < 0)) {
-  V_弹性 = 0;
-  }
-  }
-  if ((PYBK_PRESSED.has(PYBK_KEYMAP("space")) && (V_数量 < 10))) {
+  if ((__pybkUI_BTN(ctx1, 296, 36, 48, 26, "生成") && (V_数量 < 10))) {
   V_队x.push(((60) + Math.floor(Math.random() * ((340) - (60) + 1))));
   V_队y.push(((30) + Math.floor(Math.random() * ((80) - (30) + 1))));
   V_队vx.push(((((-40)) + Math.floor(Math.random() * ((40) - ((-40)) + 1))) / 10));
@@ -74,9 +110,6 @@ function PYBK_LIVE() {
   V_队径.push(((9) + Math.floor(Math.random() * ((16) - (9) + 1))));
   V_队色.push(((0) + Math.floor(Math.random() * ((4) - (0) + 1))));
   V_数量 = (V_数量 + 1);
-  }
-  if (PYBK_PRESSED.has(PYBK_KEYMAP("c"))) {
-  V_数量 = 0;
   }
   for (let V_i = 0; V_i < V_数量; V_i++) {
   V_队vy[V_i] = ((V_队vy)[V_i] + V_重力);
@@ -149,10 +182,17 @@ function PYBK_LIVE() {
   ctx1.lineTo(((V_队x)[V_i] + ((V_队vx)[V_i] * 6)), ((V_队y)[V_i] + ((V_队vy)[V_i] * 6)));
   ctx1.stroke();
   }
+  V_访客 = __pybkUI_INP(ctx1, 3, 230, 100, 160, 26);
   ctx1.fillStyle = 'rgb(' + (255) + ',' + (255) + ',' + (255) + ')';
   ctx1.strokeStyle = ctx1.fillStyle;
   ctx1.font = (20) + "px 'Microsoft YaHei UI', sans-serif";
   ctx1.fillText(("物理引擎实验室"), (16), (14));
+  if ((V_访客 != "")) {
+  ctx1.fillStyle = 'rgb(' + (120) + ',' + (220) + ',' + (255) + ')';
+  ctx1.strokeStyle = ctx1.fillStyle;
+  ctx1.font = (14) + "px 'Microsoft YaHei UI', sans-serif";
+  ctx1.fillText((("你好 " + V_访客)), (250), (100));
+  }
   ctx1.fillStyle = 'rgb(' + (150) + ',' + (210) + ',' + (255) + ')';
   ctx1.strokeStyle = ctx1.fillStyle;
   ctx1.font = (13) + "px 'Microsoft YaHei UI', sans-serif";
@@ -174,6 +214,7 @@ function PYBK_LIVE() {
   ctx1.font = (12) + "px 'Microsoft YaHei UI', sans-serif";
   ctx1.fillText(("空格 生成小球 · C 清空 · ↑↓ 调重力 · ←→ 调弹性 · 黄线 = 速度方向"), (16), (284));
   PYBK_PRESSED.clear();
+  window.__pybkMH = false;
 }
 PYBK_LIVE();
 setInterval(PYBK_LIVE, 1000 / 60);
