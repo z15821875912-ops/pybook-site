@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PYbook 1.0.0 · 中文编程入门语言</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    background: #14161f;
+    color: #cdd6f4;
+    font-family: "Microsoft YaHei UI", "PingFang SC", sans-serif;
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+  .card {
+    max-width: 640px;
+    width: calc(100% - 48px);
+    background: #1b1e2b;
+    border: 1px solid #2a2f42;
+    border-radius: 16px;
+    padding: 56px 48px 44px;
+    text-align: center;
+    box-shadow: 0 24px 80px rgba(0,0,0,.5);
+  }
+  .logo {
+    font-size: 56px;
+    font-weight: 800;
+    letter-spacing: 2px;
+    background: linear-gradient(120deg, #50fa7b, #8be9fd, #bd93f9);
+    -webkit-background-clip: text;
+    background-clip: text;
+    color: transparent;
+  }
+  .ver {
+    display: inline-block;
+    margin-top: 10px;
+    padding: 4px 14px;
+    border: 1px solid #444;
+    border-radius: 999px;
+    font-size: 14px;
+    color: #9aa5c4;
+  }
+  .tag { margin-top: 22px; font-size: 17px; color: #aab4d4; line-height: 1.7; }
+  .tag b { color: #e6e9f5; }
+  .dl {
+    display: inline-block;
+    margin-top: 36px;
+    padding: 18px 64px;
+    font-size: 21px;
+    font-weight: 700;
+    color: #14161f;
+    background: linear-gradient(120deg, #50fa7b, #37d96a);
+    border-radius: 12px;
+    text-decoration: none;
+    transition: transform .15s, box-shadow .15s;
+    box-shadow: 0 10px 30px rgba(80,250,123,.25);
+  }
+  .dl:hover { transform: translateY(-2px); box-shadow: 0 14px 40px rgba(80,250,123,.4); }
+  .meta { margin-top: 14px; font-size: 13px; color: #6b7490; }
+  .chips { margin-top: 34px; display: flex; flex-wrap: wrap; gap: 8px; justify-content: center; }
+  .chip {
+    font-size: 13px;
+    padding: 5px 12px;
+    border-radius: 8px;
+    background: #232739;
+    border: 1px solid #323852;
+    color: #9fb0d8;
+  }
+  .code {
+    margin-top: 30px;
+    text-align: left;
+    background: #10121b;
+    border: 1px solid #2a2f42;
+    border-radius: 10px;
+    padding: 18px 20px;
+    font-family: Consolas, "Courier New", monospace;
+    font-size: 14px;
+    line-height: 1.8;
+    color: #8be9fd;
+    white-space: pre;
+    overflow-x: auto;
+  }
+  .code .c { color: #6272a4; }
+  .code .k { color: #ff79c6; }
+  .foot { margin-top: 30px; font-size: 12px; color: #4d5570; }
+</style>
+</head>
+<body>
+<div class="card">
+  <div class="logo">PYbook</div>
+  <div class="ver">版本 1.0.0</div>
+
+  <p class="tag">
+    <b>中文编程入门语言</b><br>
+    写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
+    从终端到 3D，从数组到会学习的神经网络
+  </p>
+
+  <a class="dl" href="pybook-1.0.0.zip" download>⬇ 下载完整包</a>
+  <div class="meta">pybook-1.0.0.zip · 90 MB · 解压即用（只需 Python 3.10+）</div>
+
+  <div class="chips">
+    <span class="chip">14 个前缀库</span>
+    <span class="chip">2D 游戏 SDL2</span>
+    <span class="chip">3D OpenGL</span>
+    <span class="chip">网页实时模式</span>
+    <span class="chip">神经网络 torchbk</span>
+    <span class="chip">网络 TCP</span>
+    <span class="chip">音频</span>
+    <span class="chip">自带 gcc</span>
+  </div>
+
+  <div class="code"><span class="c"># 你的第一个 PYbook 程序</span>
+GOING:{
+    vg.名字 = <span class="k">"世界"</span>
+    ns.show(你好，$名字！)
+}STOP</div>
+
+  <div class="foot">PYbook · 给第一次学编程的人 · 2026</div>
+</div>
+</body>
+</html>
