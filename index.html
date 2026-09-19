@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PYbook 1.0.2 · 中文编程入门语言</title>
+<title>PYbook 1.0.3 · 中文编程入门语言</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -86,22 +86,44 @@
   .code .c { color: #6272a4; }
   .code .k { color: #ff79c6; }
   .foot { margin-top: 30px; font-size: 12px; color: #4d5570; }
+  .log {
+    margin-top: 34px;
+    text-align: left;
+    background: #10121b;
+    border: 1px solid #2a2f42;
+    border-radius: 10px;
+    padding: 6px 18px;
+  }
+  .log summary {
+    cursor: pointer;
+    font-size: 15px;
+    font-weight: 700;
+    color: #8be9fd;
+    padding: 10px 0;
+    list-style: none;
+  }
+  .log summary::before { content: "≯ "; color: #50fa7b; }
+  .log details[open] summary::before { content: "≯ "; }
+  .log .ver-line { margin: 10px 0 4px; font-size: 14px; font-weight: 700; color: #bd93f9; }
+  .log .ver-line small { color: #6b7490; font-weight: 400; margin-left: 8px; }
+  .log ul { margin: 0 0 10px 18px; font-size: 13px; line-height: 1.75; color: #aab4d4; }
+  .log b { color: #e6e9f5; }
 </style>
 </head>
 <body>
 <div class="card">
   <div class="logo">PYbook</div>
-  <div class="ver">版本 1.0.2</div>
+  <div class="ver">版本 1.0.3</div>
 
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
-    从终端到 3D · 场景编辑器 · AI 友好（PYBOOK_AI.md）· try/catch · 字典与推导式
+    新版 Web 控件交互 · torchpybk 能训分类网络（AI 示例 100% 准确率）· 场景编辑器 · try/catch
   </p>
 
-  <a class="dl" href="pybook-1.0.2.zip" download>⬇ 下载完整包</a>
+  <a class="dl" href="pybook-1.0.3.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.2.zip · 90 MB · 解压即用（只需 Python 3.10+）</div>
+  <div class="meta">pybook-1.0.3.zip · 50 MB · 解压即用（只需 Python 3.10+）</div>
 
   <div class="chips">
     <span class="chip">14 个前缀库</span>
@@ -119,6 +141,38 @@ GOING:{
     vg.名字 = <span class="k">"世界"</span>
     ns.show(你好，$名字！)
 }STOP</div>
+
+  <div class="log">
+    <details open>
+      <summary>迭代日志 —— 每个版本加了什么</summary>
+      <div class="ver-line">1.0.3 <small>2026-09-19 · 新版 Web + torchpybk</small></div>
+      <ul>
+        <li><b>torchpybk 分类补全</b>：softmax / 交叉熵 / argmax、SGD / Adam 优化器、shuffle / onehot / batch 数据原语——MNIST 式分类全链路可跑，示例网络训练到 <b>100% 准确率</b></li>
+        <li><b>Web 交互全套</b>：输入框 / 按钮控件（textbox·button）、读取表达（web.text·down·click·mx·my）、音频 / 标题 / 样式 / 本地存储 / 等待 / 翻转贴图</li>
+        <li><b>修复三处</b>：web.audio.stop 与 web.waitsec 一用即崩、mp.mat_scale 参数个数错误</li>
+        <li><b>文档</b>：PYBOOK_AI.md 新增神经网络 / math+ / numpybk / Web / 3D 五章（示例全部过 --check）</li>
+      </ul>
+      <div class="ver-line">1.0.2 <small>2026-09-19 · 编辑器 / IDE / AI 规范</small></div>
+      <ul>
+        <li>场景编辑器 editor.exe、PYbookIDE.exe（写代码+编译+运行一体）</li>
+        <li>AI 编程四件套：--check 秒验语法、报错带行号带改法、PYBOOK_AI.md + llms.txt 规范</li>
+        <li>语言升级：字典 / 推导式 / try-catch / onerror / .get·.at / 切片 / 三元 / 插值 / 默认参数</li>
+        <li>网页画布与动画：web.draw、web.帧 / web.播放 / web.实时</li>
+        <li>全部新游戏与四语言开发速度基准</li>
+      </ul>
+      <div class="ver-line">1.0.1 <small>2026-09-13 · 网页模式起步</small></div>
+      <ul>
+        <li>在线《物理引擎实验室》：滑条 / 按钮 / 输入框 + 鼠标交互</li>
+        <li>web 段落输出（big / mid / show / img / line / link）+ /magic 修饰</li>
+      </ul>
+      <div class="ver-line">1.0.0 <small>2026-09-13 · 首发</small></div>
+      <ul>
+        <li>中文语法编译到 C：60 FPS SDL2 原生窗口、3D 模块、TCP 网络</li>
+        <li>math+（mp）/ numpybk（np）/ torchpybk（tb）三库齐备</li>
+        <li>内置游戏：占点突击、飞船大战、AI 走迷宫、伪 3D 走廊、鼠标勇士、霓虹突袭 等</li>
+      </ul>
+    </details>
+  </div>
 
   <div class="foot">PYbook · 给第一次学编程的人 · 2026</div>
 </div>
