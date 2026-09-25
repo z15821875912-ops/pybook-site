@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PYbook 1.0.3 · 中文编程入门语言</title>
+<title>PYbook 1.0.4 · 中文编程入门语言</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -113,22 +113,22 @@
 <body>
 <div class="card">
   <div class="logo">PYbook</div>
-  <div class="ver">版本 1.0.3</div>
+  <div class="ver">版本 1.0.4</div>
 
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
-    新版 Web 控件交互 · torchpybk 能训分类网络（AI 示例 100% 准确率）· 场景编辑器 · try/catch
+    3D 上真 OpenGL 着色器（GLSL）· 编译器提速（标量化 + 字典哈希）· MyMove 像素画库 · js/csv
   </p>
 
-  <a class="dl" href="pybook-1.0.3.zip" download>⬇ 下载完整包</a>
+  <a class="dl" href="pybook-1.0.4.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.3.zip · 50 MB · 解压即用（只需 Python 3.10+）</div>
+  <div class="meta">pybook-1.0.4.zip · 19 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
 
   <div class="chips">
     <span class="chip">14 个前缀库</span>
     <span class="chip">2D 游戏 SDL2</span>
-    <span class="chip">3D OpenGL</span>
+    <span class="chip">3D OpenGL 着色器</span>
     <span class="chip">网页实时模式</span>
     <span class="chip">神经网络 torchbk</span>
     <span class="chip">网络 TCP</span>
@@ -145,6 +145,15 @@ GOING:{
   <div class="log">
     <details open>
       <summary>迭代日志 —— 每个版本加了什么</summary>
+      <div class="ver-line">1.0.4 <small>2026-09-25 · 3D 可编程管线 + Godot 级编译器</small></div>
+      <ul>
+        <li><b>3D 上真 OpenGL 着色器</b>：新增 hw.preset（6 个内置着色器：朗伯 / 卡通 / 边缘光 / 棋盘 / 法线 / 自发光）、hw.shader（写自己的 GLSL）、hw.shaderuse（一帧里中途切换）、hw.uni（设 uniform）。用 GLSL 120 吃固定管线内建量，<b>1400 行几何代码一行没改成 VBO</b>；实测驱动是 <b>OpenGL 4.6 兼容 profile</b></li>
+        <li><b>3D 补全</b>：球 / 圆柱 / 圆锥 / 线段 / 真方向光 / 视场角与近裁剪面可调 / 贴图（png·jpg·bmp·tga + 透明裁剪 + UV 平铺）/ 父子层级 hw.push·hw.pop（最多 20 层，转桌子桌上的东西跟着转）</li>
+        <li><b>编译器提速</b>：rm.around 热点标量化 + 字典哈希索引——速度对决从"比 Python 慢 80 倍"追到 <b>1.68s vs 0.62s</b></li>
+        <li><b>新标准库</b>：js.（JSON 解析/序列化）、csv.（RFC4180）、bs.（位运算 15 个）、mm. MyMove（列表即像素画，手写 PNG 编码器零依赖，像素级比对全对）、音乐库扩展（音.音 / 音.奏 / 音.谱——<b>列表做音乐，直接落 WAV</b>）</li>
+        <li><b>VM 后端</b>：新增字典字面量（DICT_NEW / DICT_SET）与标准库调用（CALL_LIB），VM 模式不再只能跑纯语言子集</li>
+        <li><b>语言/工具</b>：查(条件,"名字") 测试断言 + --test 退出码、引用("模块") 模块合类、web.块 组件复用 / web.页 多页、多核加速（大矩阵自动并行 <b>2.64×</b>）、积木编辑器</li>
+      </ul>
       <div class="ver-line">1.0.3 <small>2026-09-19 · 新版 Web + torchpybk</small></div>
       <ul>
         <li><b>torchpybk 分类补全</b>：softmax / 交叉熵 / argmax、SGD / Adam 优化器、shuffle / onehot / batch 数据原语——MNIST 式分类全链路可跑，示例网络训练到 <b>100% 准确率</b></li>
