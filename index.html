@@ -118,12 +118,12 @@
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
-    3D 上真 OpenGL 着色器（GLSL）· 编译器提速（标量化 + 字典哈希）· MyMove 像素画库 · js/csv
+    3D 上真 OpenGL 着色器（GLSL）+ 正交投影 · 编译器提速（标量化 + 字典哈希）· MyMove 像素画库 · js/csv
   </p>
 
   <a class="dl" href="pybook-1.0.4.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.4.zip · 19 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
+  <div class="meta">pybook-1.0.4.zip · 16.9 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
 
   <div class="chips">
     <span class="chip">14 个前缀库</span>
@@ -148,7 +148,7 @@ GOING:{
       <div class="ver-line">1.0.4 <small>2026-09-25 · 3D 可编程管线 + Godot 级编译器</small></div>
       <ul>
         <li><b>3D 上真 OpenGL 着色器</b>：新增 hw.preset（6 个内置着色器：朗伯 / 卡通 / 边缘光 / 棋盘 / 法线 / 自发光）、hw.shader（写自己的 GLSL）、hw.shaderuse（一帧里中途切换）、hw.uni（设 uniform）。用 GLSL 120 吃固定管线内建量，<b>1400 行几何代码一行没改成 VBO</b>；实测驱动是 <b>OpenGL 4.6 兼容 profile</b></li>
-        <li><b>3D 补全</b>：球 / 圆柱 / 圆锥 / 线段 / 真方向光 / 视场角与近裁剪面可调 / 贴图（png·jpg·bmp·tga + 透明裁剪 + UV 平铺）/ 父子层级 hw.push·hw.pop（最多 20 层，转桌子桌上的东西跟着转）</li>
+        <li><b>3D 补全</b>：球 / 圆柱 / 圆锥 / 线段 / 真方向光 / 视场角与近裁剪面可调 / <b>hw.ortho 正交投影</b>（俯视图、等距对齐视图，不再只有透视） / 贴图（png·jpg·bmp·tga + 透明裁剪 + UV 平铺）/ 父子层级 hw.push·hw.pop（最多 20 层，转桌子桌上的东西跟着转）</li>
         <li><b>编译器提速</b>：rm.around 热点标量化 + 字典哈希索引——速度对决从"比 Python 慢 80 倍"追到 <b>1.68s vs 0.62s</b></li>
         <li><b>新标准库</b>：js.（JSON 解析/序列化）、csv.（RFC4180）、bs.（位运算 15 个）、mm. MyMove（列表即像素画，手写 PNG 编码器零依赖，像素级比对全对）、音乐库扩展（音.音 / 音.奏 / 音.谱——<b>列表做音乐，直接落 WAV</b>）</li>
         <li><b>VM 后端</b>：新增字典字面量（DICT_NEW / DICT_SET）与标准库调用（CALL_LIB），VM 模式不再只能跑纯语言子集</li>
