@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PYbook 1.0.5 · 中文编程入门语言</title>
+<title>PYbook 1.0.5.1 · 中文编程入门语言</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -123,20 +123,25 @@
 <body>
 <div class="card">
   <div class="logo">PYbook</div>
-  <div class="ver">版本 1.0.5</div>
+  <div class="ver">版本 1.0.5.1</div>
 
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
-    <b>桌面 GUI</b>：按钮 / 输入框 / 滑条 / 勾选，支持中文输入法 ·
-    3D 真 OpenGL 着色器（GLSL）· 编译器提速 · 14 个前缀库
+    <b>粒子库参数化</b>：重力 / 阻力 / 速度随你调，还能<b>一池跑多种物理</b> ·
+    <b>3D 示例「星核特效」</b>（纯 fancy3d + pybk，零着色器）·
+    桌面 GUI · 3D 真 OpenGL 着色器（GLSL）· 14 个前缀库
   </p>
 
-  <a class="dl" href="pybook-1.0.5.zip" download>⬇ 下载完整包</a>
+  <a class="dl" href="pybook-1.0.5.1.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.5.zip · 14.6 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
+  <div class="meta">pybook-1.0.5.1.zip · 15.7 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
 
   <div class="chips">
+    <span class="chip">粒子库可调参数</span>
+    <span class="chip">一池多种物理</span>
+    <span class="chip">3D 星核特效示例</span>
+    <span class="chip">无头出图（批量截图）</span>
     <span class="chip">桌面 GUI 窗口程序</span>
     <span class="chip">14 个前缀库</span>
     <span class="chip">2D 游戏 SDL2</span>
@@ -153,65 +158,59 @@ GOING:{
     ns.show(你好，$名字！)
 }STOP</div>
 
-  <div class="code"><span class="c"># 本版新东西：带按钮和输入框的原生窗口程序（拷贝即用）</span>
+  <div class="code"><span class="c"># 本版新东西：粒子库的物理参数化了 —— 重力 / 阻力 / 速度随你调</span>
+ON 3D_highway
+<span class="k">引用("fancy3d")</span>
 GOING:{
+hw.open(480, 320, <span class="k">"粒子喷泉"</span>)
+hw.clearcolor(8, 10, 22)
+hw.fog(30.0, 70.0)
 
-win(380, 220, <span class="k">"我的第一个设置窗"</span>)
-color(11, 14, 20)
+vg.池 = []
+fancy3d_init(池, 200)
 
-音量 = 60.0
-名字 = <span class="k">"世界"</span>
-开音乐 = 1
-提示 = <span class="k">"改点东西试试 →"</span>
+vg.帧 = 0
+rm.aging.while(帧 >= 900 or hw.end()) {
 
-rm.aging.while(end()) {
+    hw.camera(0.0, 5.0, 20.0, 0.0, 0.0 - 0.2)
+    hw.light(0.4, 0.9, 0.4, 1.0)
+    hw.box(0.0 - 4.0, 0.0 - 0.3, 0.0 - 4.0, 8.0, 0.3, 8.0, 32, 44, 72)
 
-    clear()
+    if(帧 % 3 == 0) {
+        fancy3d_burst(池, 0.0, 0.4, 0.0, 4, 120, 205, 255, <span class="k">1.6</span>)  <span class="c"># 末参 = 初速倍率</span>
+    }
 
-    ui.begin(20, 18, 340)
+    vg.丢 = fancy3d_update(池, <span class="k">0.02</span>, <span class="k">0.995</span>)   <span class="c"># 重力 0.02 + 每帧 0.5% 空气阻力</span>
 
-        ui.label(<span class="k">"设置"</span>, 20)
-        ui.gap(6)
-
-        ui.label(<span class="k">"名字"</span>, 14)
-        名字 = ui.input(名字)
-
-        ui.gap(8)
-        音量 = ui.slider(音量, 0, 100)
-        开音乐 = ui.check(<span class="k">"开音乐"</span>, 开音乐)
-
-        ui.gap(10)
-        ui.row()
-            if(ui.button(<span class="k">"保存"</span>)) {
-                提示 = <span class="k">"已保存：$名字 音量=$音量 开音乐=$开音乐"</span>
-            }
-        ui.end()
-
-        ui.gap(8)
-        ui.label(<span class="k">"$提示"</span>, 14)
-
-    ui.end()      <span class="c"># ui.begin 必须和 ui.end 配对</span>
-
-    show()
-    wait(16)
+    帧 = 帧 + 1
+    hw.frame()
 }
-
 }STOP</div>
 
   <div class="shots">
-    <img class="big" src="shots/gui-1.png" alt="PYbook 桌面 GUI：输入框 / 按钮 / 滑条 / 勾选框">
-    <img src="shots/gui-2.png" alt="PYbook 桌面 GUI：按钮悬停高亮反馈">
-    <img src="shots/gui-3.png" alt="PYbook 桌面 GUI：拖动滑条后数值从 50 变成 73">
+    <img class="big" src="shots/starcore-1.png" alt="PYbook「星核特效」：484 块砖的波动地面、三道自转能量环、中心亮核与力场笼">
+    <img src="shots/starcore-2.png" alt="PYbook「星核特效」：粒子池扩散、能量环展开的画面">
+    <img src="shots/starcore-3.png" alt="PYbook「星核特效」：粒子围绕星核扩散的画面">
   </div>
   <div class="shot-cap">
-    这个窗口是 PYbook 自己画的，<b>没有用任何第三方界面库</b>：单行输入框（可打中文）、按钮、滑条、勾选框，
-    全部由 <b>ui.*</b> 立即模式 API 生成。<br>
-    下面两张细节：按钮悬停会高亮；拖完滑条数值从 50 变成 73 —— 状态真的存在脚本变量里，控件只是每帧重画一遍
+    「<b>星核特效</b>」是随包附带的 3D 示例（<b>星核特效/星核特效.pybk</b>，双击 <b>星核特效.cmd</b> 直接出窗口）：
+    地面 484 块砖逐块按高度场算、三道各 72 段的能量环挂在自转父节点上、中间一颗亮核套着三层互相垂直的力场笼。<br>
+    它<b>没用任何着色器、贴图和第三方库</b> —— 粒子是标准库 <b>fancy3d</b>、几何是 <b>hw.box</b> 一块块拼的，
+    运动学全是 PYbook 自己积分出来的。这三张图也是引擎的<b>无头出图</b>功能自动截的
   </div>
 
   <div class="log">
     <details open>
       <summary>迭代日志 —— 每个版本加了什么</summary>
+      <div class="ver-line">1.0.5.1 <small>2026-09-27 · 1.0.5 修正版：粒子库可调 + 星核特效</small></div>
+      <ul>
+        <li><b>粒子库力学参数化</b>：<b>fancy3d / fancy2d</b> 的物理原来是写死的（固定重力 + 直线匀速），想做上升的烟 / 公转的涡 / 落地反弹的尘，只能整个绕开它自己积分。现在<b>重力 / 阻力 / 速度都是可选参数</b>，默认值逐位等于旧行为，<b>老代码一行不用改</b></li>
+        <li><b>粒子级参数：一池多种物理</b> —— 参数还能下沉到粒子自己身上（<b>p.重力 / p.阻力 / p.速度</b>），新增 <b>fancy3d_evolve / fancy2d_evolve</b>：一次调用，同一个池里往上飘的烟和往下砸的石头各走各的。以前一池只能一种物理，想要多种就得建多个池</li>
+        <li><b>新增 fancy3d_draw（只画不演化）</b>：物理完全自己写完之后，仍可借它那套「按生命比例衰减大小与颜色」的绘制，不必自己重复写 hw.sphere</li>
+        <li><b>引擎修复：hw.fov / hw.near / mt.clamp / mt.lerp / mu.* 补上 C 名映射</b> —— 这些名字在参数个数表里有、C 名映射表里漏了，写出来不是报「没这个 API」，而是<b>编译器自己 KeyError 崩掉</b>，报错跟你的代码毫无关系。共补 12 条</li>
+        <li><b>引擎新能力：无头出图</b> —— 设一个环境变量（<b>PYBOOK_SHOT_DIR</b>）就能让 3D 程序每 N 帧自动存一张图，不设则零开销。3D 画面以前只有真窗口能看，自动化验收只能靠「跑完没崩」猜 —— 上面那三张截图就是它截的</li>
+        <li><b>新示例「星核特效」</b>：<b>382 行、纯 fancy3d + pybk</b>，零着色器零贴图，双击 <b>星核特效.cmd</b> 直接出窗口</li>
+      </ul>
       <div class="ver-line">1.0.5 <small>2026-09-27 · 桌面 GUI + 三个引擎修复</small></div>
       <ul>
         <li><b>桌面 GUI：ui.* 立即模式界面库</b>（11 个 API）——按钮 / 单行输入（<b>支持中文输入法</b>）/ 滑条 / 勾选框 / 标签，横排竖排容器 + 间距 + id 绑定。SDL2 自绘、零新依赖，没有控件对象也没有事件回调，<b>每帧重声明一遍，函数直接返回交互结果</b>——写三行就是一个表单</li>
