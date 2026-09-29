@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PYbook 1.0.5.1 · 中文编程入门语言</title>
+<title>PYbook 1.0.5.2 · 中文编程入门语言</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -123,27 +123,29 @@
 <body>
 <div class="card">
   <div class="logo">PYbook</div>
-  <div class="ver">版本 1.0.5.1</div>
+  <div class="ver">版本 1.0.5.2</div>
 
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
-    <b>粒子库参数化</b>：重力 / 阻力 / 速度随你调，还能<b>一池跑多种物理</b> ·
-    <b>3D 示例「星核特效」</b>（纯 fancy3d + pybk，零着色器）·
-    桌面 GUI · 3D 真 OpenGL 着色器（GLSL）· 14 个前缀库
+    <b>安全加固版</b>：GC 三处修复（@5/@6 不再崩、提速 42 倍）·
+    <b>Smokeroor 安全体检</b>（一条命令出红绿灯）·
+    <b>编译提速 6.5 倍</b> ·
+    桌面 GUI · 3D 真 OpenGL 着色器（GLSL）· 15 个前缀库
   </p>
 
-  <a class="dl" href="pybook-1.0.5.1.zip" download>⬇ 下载完整包</a>
+  <a class="dl" href="pybook-1.0.5.2.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.5.1.zip · 15.7 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
+  <div class="meta">pybook-1.0.5.2.zip · 28.1 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
 
   <div class="chips">
-    <span class="chip">粒子库可调参数</span>
-    <span class="chip">一池多种物理</span>
+    <span class="chip">Smokeroor 安全体检</span>
+    <span class="chip">GC 分代 + 增量</span>
+    <span class="chip">编译缓存 6.5 倍</span>
     <span class="chip">3D 星核特效示例</span>
     <span class="chip">无头出图（批量截图）</span>
     <span class="chip">桌面 GUI 窗口程序</span>
-    <span class="chip">14 个前缀库</span>
+    <span class="chip">15 个前缀库</span>
     <span class="chip">2D 游戏 SDL2</span>
     <span class="chip">3D OpenGL 着色器</span>
     <span class="chip">网页实时模式</span>
@@ -157,6 +159,16 @@ GOING:{
     vg.名字 = <span class="k">"世界"</span>
     ns.show(你好，$名字！)
 }STOP</div>
+
+  <div class="code"><span class="c"># 安全体检（1.0.5.2）：一行看懂变量现在什么状态</span>
+GOING:{
+    vg.a = 42
+    ns.show(状态 = $(smoke.check(a)))    <span class="c"># [OK] / [DELETED] / [DANGLING]</span>
+    ns.show(类型 = $(smoke.type(a)))     <span class="c"># INT / STR / LIST ...</span>
+    vg.h = smoke.heap()
+    ns.show(体检 = $h)                   <span class="c"># [错误数, 悬垂, 根数, 模式, 字节, 单元]</span>
+}STOP</div>
+  <div class="meta" style="margin-top:-6px">跑 <code>python smokeroor.py</code> 一条命令体检全部安全机制（红绿灯报告）</div>
 
   <div class="code"><span class="c"># 本版新东西：粒子库的物理参数化了 —— 重力 / 阻力 / 速度随你调</span>
 ON 3D_highway
@@ -202,6 +214,18 @@ rm.aging.while(帧 >= 900 or hw.end()) {
   <div class="log">
     <details open>
       <summary>迭代日志 —— 每个版本加了什么</summary>
+      <div class="ver-line">1.0.5.2 <small>2026-09-29 · 安全加固版：GC 修复 + Smokeroor + 编译缓存</small></div>
+      <ul>
+        <li><b>修复 @5/@6 一跑就崩</b>（访问违例 <code>0xC0000005</code>）：GC 的 sweep 自己就逐个回收垃圾，却又递归释放子对象 —— 子对象若排在父前面已被 free 过，父再释放就踩悬空指针。原来 <b>@normal 141ms 跑完的负载，@5/@6 必崩</b>；现在正常</li>
+        <li><b>修复 @6 慢 100 倍</b>：minor GC 会顺着老年代往下摸<b>整个可达图</b>，退化成半个全堆标记；而且 major GC 从不自动跑（增量是死代码）。加了代际隔离 + 老年代超 2MB 自动点火增量标记，<b>9860ms → 234ms（提速 42 倍）</b>，@6 相对 @normal 的开销从 70 倍降到 <b>1.66 倍</b></li>
+        <li><b>补上增量标记的写屏障</b>（黑分配 + 删除屏障 + 插入屏障）：以前增量标记期间改指针会漏标、被当垃圾收走。实测 <b>60000 对象 + 400 轮高频改引用，校验 0 错</b></li>
+        <li><b>新增 Smokeroor 安全体检</b>：<code>python smokeroor.py</code> 一条命令出红绿灯报告。配 <b><code>smoke.*</code> 14 个检查函数</b>（零成本），<code>smoke.check(v)</code> 一行看懂变量是 <code>[OK]</code> / <code>[DELETED]</code> / <code>[DANGLING]</code></li>
+        <li><b>期望驱动 + 错误指纹库</b>：新错误来了<b>只加声明不改源码</b>（<code>--learn</code> 自动生成期望）；见过的错<b>秒认</b>（标 <code>[已知]</code>）。不符自动重试，还不符就红 + 明确 diff + 基线揪出新增失败</li>
+        <li><b>编译提速 6.5 倍</b>：源码 / 引用库 / 编译器 / 运行时都没变就直接跑上次的 exe（<b>冷 9.95 秒 → 热 1.52 秒</b>）。改源码或改运行时自动失效</li>
+        <li><b>修复 @self 悬垂指针</b>：手动删除后共享别名访问原来是「后果自负」（野指针），现在报 <code>用已删除变量</code> 干净退出 —— 这是<b>唯一能让 PYbook 段错误的地方</b></li>
+        <li><b>新增 <code>te.chr(码点)</code></b>：PYbook 字符串不支持转义，这是产生换行 / 回车的唯一出口（<code>te.chr(10)</code> 换行、<code>te.chr(13)</code> 回车）。<b>顺带解锁了 HTTP</b>（CRLF 能发了）</li>
+      </ul>
+
       <div class="ver-line">1.0.5.1 <small>2026-09-27 · 1.0.5 修正版：粒子库可调 + 星核特效</small></div>
       <ul>
         <li><b>粒子库力学参数化</b>：<b>fancy3d / fancy2d</b> 的物理原来是写死的（固定重力 + 直线匀速），想做上升的烟 / 公转的涡 / 落地反弹的尘，只能整个绕开它自己积分。现在<b>重力 / 阻力 / 速度都是可选参数</b>，默认值逐位等于旧行为，<b>老代码一行不用改</b></li>
