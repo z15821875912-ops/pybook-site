@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PYbook 1.0.5.2 · 中文编程入门语言</title>
+<title>PYbook 1.0.6 · 中文编程入门语言</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -123,22 +123,23 @@
 <body>
 <div class="card">
   <div class="logo">PYbook</div>
-  <div class="ver">版本 1.0.5.2</div>
+  <div class="ver">版本 1.0.6</div>
 
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
-    <b>安全加固版</b>：GC 三处修复（@5/@6 不再崩、提速 42 倍）·
-    <b>Smokeroor 安全体检</b>（一条命令出红绿灯）·
-    <b>编译提速 6.5 倍</b> ·
-    桌面 GUI · 3D 真 OpenGL 着色器（GLSL）· 15 个前缀库
+    <b>工具链 LookAround（随包内置）</b>：改代码自动记开发日志、报错翻中文人话、一键出团队协作报告 ·
+    <b>GC 分代 + 增量</b>（@5/@6 不再崩、提速 42 倍）·
+    <b>Smokeroor 安全体检</b> ·
+    桌面 GUI · 3D OpenGL 着色器 · 15 个前缀库
   </p>
 
-  <a class="dl" href="pybook-1.0.5.2.zip" download>⬇ 下载完整包</a>
+  <a class="dl" href="pybook-1.0.6.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.5.2.zip · 28.1 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
+  <div class="meta">pybook-1.0.6.zip · 45.8 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
 
   <div class="chips">
+    <span class="chip">LookAround 开发日志循环</span>
     <span class="chip">Smokeroor 安全体检</span>
     <span class="chip">GC 分代 + 增量</span>
     <span class="chip">编译缓存 6.5 倍</span>
@@ -169,6 +170,14 @@ GOING:{
     ns.show(体检 = $h)                   <span class="c"># [错误数, 悬垂, 根数, 模式, 字节, 单元]</span>
 }STOP</div>
   <div class="meta" style="margin-top:-6px">跑 <code>python smokeroor.py</code> 一条命令体检全部安全机制（红绿灯报告）</div>
+
+  <div class="code"><span class="c"># 工具链 LookAround（1.0.6 随包内置）：开发日志自动记下来</span>
+cd 你的项目目录
+pybktl lookaround              <span class="c"># 开启：后台监控文件改动 + 记录每次 run/build/check/smoke</span>
+pybktl check 程序.pybk         <span class="c"># 失败？报错被翻成中文人话，落进 lookaround.md</span>
+pybktl todo add 把报错翻成人话
+pybktl check 程序.pybk --todo 1  <span class="c"># 这次运行关联到某条待办</span>
+pybktl lookaround report       <span class="c"># 一键出团队协作报告</span></div>
 
   <div class="code"><span class="c"># 本版新东西：粒子库的物理参数化了 —— 重力 / 阻力 / 速度随你调</span>
 ON 3D_highway
@@ -214,6 +223,17 @@ rm.aging.while(帧 >= 900 or hw.end()) {
   <div class="log">
     <details open>
       <summary>迭代日志 —— 每个版本加了什么</summary>
+      <div class="ver-line">1.0.6 <small>2026-10-05 · 工具链 LookAround（随包内置）+ 多项引擎修复</small></div>
+      <ul>
+        <li><b>随包内置工具链 LookAround</b>：<code>pybktl lookaround</code> 在任意项目目录后台帮你记开发日志——文件改动 diff、每次 <code>check/build/run/smoke</code> 的退出码与报错、gcc/Python 报错<b>翻成中文人话</b>并聚合去重，自动写进 <code>lookaround.md</code></li>
+        <li><b>文件夹级待办 + 团队协作报告</b>：<code>pybktl todo add/done/rm</code> 管理中途待办，<code>check --todo N</code> 把运行关联到待办；<code>pybktl lookaround report</code> 一键汇总「运行数 / 成功失败比 / 错误分类 / 待办进度」</li>
+        <li><b>可移植、零硬编码</b>：不写死任何路径，靠从工具自身位置向上找 <code>pybk_main.py</code> 定位编译器，下载解压即得</li>
+        <li><b>FFI 前缀 c.* → ffi.*</b>：避免撞上「拿 c 当变量名」的老写法；<b>报错三段式</b>带「为什么 / 怎么改」；<b>rm.around 修复</b>（之前循环体被静默丢弃）</li>
+        <li><b>3D 增强</b>：HUD 永远和窗口对齐、鼠标三层锁死、<code>hw.objh</code> 地形高度查询、<code>hw.rdown/rhit</code> 右键、<code>hw.wininfo/hw.resize</code>；<code>hw.obj*</code> 支持 .obj 模型（含 .mtl 材质）</li>
+        <li><b>21 条弱项逐条实测</b>：澄清「无并发无并行」（16 工人线程池，默认 4.89×）、「性能靠 SDL」（300×300 矩阵乘 23× 于 CPython 且零依赖）；修掉 3 个示例漂移</li>
+        <li>底层延续 1.0.5.2：<b>GC 分代 + 增量</b>（@5/@6 不再崩、提速 42 倍）、<b>Smokeroor 安全体检</b>、<b>编译缓存 6.5 倍</b></li>
+      </ul>
+
       <div class="ver-line">1.0.5.2 <small>2026-09-29 · 安全加固版：GC 修复 + Smokeroor + 编译缓存</small></div>
       <ul>
         <li><b>修复 @5/@6 一跑就崩</b>（访问违例 <code>0xC0000005</code>）：GC 的 sweep 自己就逐个回收垃圾，却又递归释放子对象 —— 子对象若排在父前面已被 free 过，父再释放就踩悬空指针。原来 <b>@normal 141ms 跑完的负载，@5/@6 必崩</b>；现在正常</li>
