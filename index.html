@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PYbook 1.0.6 · 中文编程入门语言</title>
+<title>PYbook 1.0.7 · 中文编程入门语言</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -123,20 +123,21 @@
 <body>
 <div class="card">
   <div class="logo">PYbook</div>
-  <div class="ver">版本 1.0.6</div>
+  <div class="ver">版本 1.0.7</div>
 
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
+    <b>1.0.7 新到</b>：宏 · 类系统（继承 / 多态 / 静态成员）· 张量一等类型（A**B 矩阵乘 / T[i,j] / T[a:b,c:d] 切片）· VM 后端加速 ·
     <b>工具链 LookAround（随包内置）</b>：改代码自动记开发日志、报错翻中文人话、一键出团队协作报告 ·
     <b>GC 分代 + 增量</b>（@5/@6 不再崩、提速 42 倍）·
     <b>Smokeroor 安全体检</b> ·
     桌面 GUI · 3D OpenGL 着色器 · 15 个前缀库
   </p>
 
-  <a class="dl" href="pybook-1.0.6.zip" download>⬇ 下载完整包</a>
+  <a class="dl" href="pybook-1.0.7.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.6.zip · 45.8 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
+  <div class="meta">pybook-1.0.7.zip · 62.9 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
 
   <div class="chips">
     <span class="chip">LookAround 开发日志循环</span>
@@ -153,6 +154,10 @@
     <span class="chip">神经网络 torchbk</span>
     <span class="chip">网络 TCP</span>
     <span class="chip">音频</span>
+    <span class="chip">宏 macro（编译期内联）</span>
+    <span class="chip">类系统 class（继承/多态/静态）</span>
+    <span class="chip">张量一等类型 tensor</span>
+    <span class="chip">VM 后端加速</span>
   </div>
 
   <div class="code"><span class="c"># 你的第一个 PYbook 程序</span>
@@ -208,6 +213,22 @@ rm.aging.while(帧 >= 900 or hw.end()) {
 }
 }STOP</div>
 
+  <div class="code"><span class="c"># 本版新东西（1.0.7）：宏 / 类系统 / 张量一等类型</span>
+宏 打招呼(名){ ns.show(你好，$名！) }      <span class="c"># 编译期内联展开，只能当语句</span>
+
+lb.点 {
+  vg.x = 0
+  vg.y = 0
+  func 右移(){ self.x = self.x + 1; self }   <span class="c"># self 隐式，方法体末值即返回</span>
+}
+vg.p = 点()
+p.右移()
+
+vg.M = tensor.from_list([[1,2],[3,4]])
+vg.N = tensor.from_list([[5,6],[7,8]])
+vg.R = M ** N                  <span class="c"># 矩阵乘，真·VM 张量对象（多线程）</span>
+ns.show(R[0, 1])               <span class="c"># 多维索引（行0，列1）</span></div>
+
   <div class="shots">
     <img class="big" src="shots/starcore-1.png" alt="PYbook「星核特效」：484 块砖的波动地面、三道自转能量环、中心亮核与力场笼">
     <img src="shots/starcore-2.png" alt="PYbook「星核特效」：粒子池扩散、能量环展开的画面">
@@ -223,6 +244,15 @@ rm.aging.while(帧 >= 900 or hw.end()) {
   <div class="log">
     <details open>
       <summary>迭代日志 —— 每个版本加了什么</summary>
+      <div class="ver-line">1.0.7 <small>2026-10-08 · 宏 / 类系统 / 张量一等类型 / VM 后端加速</small></div>
+      <ul>
+        <li><b>宏（编译期内联）</b>：<code>宏 名(参数){...}</code> 在编译期展开，专治「小操作反复写、调用又有开销」。只当语句用、不支持递归</li>
+        <li><b>类系统补齐三大特性</b>：<b>继承 + 多态</b>（<code>lb.狗 : 动物</code>，运行时沿继承链分发）、<b>构造形参</b>（<code>lb.点(x,y){...}</code> 位置实参 + 自动注入 <code>构造</code>）、<b>静态成员 / 类方法</b>（<code>静 vg.字段</code> / <code>静 func 方法</code>）</li>
+        <li><b>张量一等类型（真·VM 对象，不是二维列表语法糖）</b>：新对象 <code>RtTensor</code> 挂在 OBJ 盒标签上；<code>A ** B</code> 矩阵乘（多线程）、<code>T[i,j]</code> 多维索引、<code>T[a:b,c:d]</code> 二维切片；<code>tensor.from/to_list/get/set/slice</code> 全套 API</li>
+        <li><b>VM 后端加速</b>：解释器改 threaded dispatch（纯解释、无 JIT）；实测 2000 万次单循环 C 端 1837ms vs VM 2332ms（约 1.27×），小负载甚至更快</li>
+        <li>底层延续 1.0.6：工具链 LookAround、GC 分代 + 增量、Smokeroor 安全体检、编译缓存 6.5 倍</li>
+      </ul>
+
       <div class="ver-line">1.0.6 <small>2026-10-05 · 工具链 LookAround（随包内置）+ 多项引擎修复</small></div>
       <ul>
         <li><b>随包内置工具链 LookAround</b>：<code>pybktl lookaround</code> 在任意项目目录后台帮你记开发日志——文件改动 diff、每次 <code>check/build/run/smoke</code> 的退出码与报错、gcc/Python 报错<b>翻成中文人话</b>并聚合去重，自动写进 <code>lookaround.md</code></li>

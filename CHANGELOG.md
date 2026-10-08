@@ -2,6 +2,212 @@
 
 每个版本"加了什么"，一眼看完。新版本在最上面。
 
+## 1.0.7 —— 宏 / 类系统 / 张量一等类型 / VM 加速（2026-10-08）
+
+> 本版合并 1.0.7–1.0.14 八个待发布迭代：宏（inline 编译期内联）、类系统三大扩展（继承/多态·构造形参+构造体·静态成员/类方法）、大项目管理 Phase 1、VM 字节码补全、报错三段式、VM 编译期拒绝、threaded dispatch 加速、张量一等类型。
+
+### 1.0.14 —— 张量一等类型（真·新 VM 对象 RTK_TENSOR，T[i,j] / T[a:b,c:d] / A**B 双后端通用）
+
+> 主线：把张量从「`tb.*` 里的二维列表」升格为**语言一等类型**——独立的 VM 对象（`RTK_TENSOR=5`，躺在 `OBJ` box-tag 后面），底层 `struct RtTensor { int ndim; int *dims; double *data; }` 扁平 double 缓冲。3 位 Value 类型标签已用完（0–7），所以走 `OBJ` box-tag 复用，不碰标签空间。语法层给了 `T[i,j]` 多维索引、`T[a:b,c:d]` 二维切片、`A**B` 矩阵乘，VM 后端与 C 后端行为完全一致。
+
+#### 改动
+- **运行时（pybook_rt.c / pybook_rt.h）**：新增 `RtTensor`、`rt_tensor_new/at/set_at/slice/from_list/to_list/row` 等；`IS_TENSOR` / `rt_as_tensor` 走 `OBJ` box-tag 判 `RtCell->kind == RTK_TENSOR`。`rt_tensor_set` 改为按值返回（VM / `CALL_LIB` 友好，原地只改堆缓冲）。
+- **tb.* 全量迁移（pybook_tb.c）**：29 个函数从 `cells_of()` / `RtList*` 改写为扁平 `RtTensor` 缓冲访问（`rows_of`/`cols_of`/`at`/`set_at`），不再泄漏旧列表表示；仅 `tb.shuffle`/`tb.batch` 两个采样列表辅助函数保留 `AS_LIST` 用法（本就是给整表喂样本列表）。
+- **前端语法（pybk_front.py）**：
+  - `TWO_OPS` 加入 `**`，`_mul` 里 `A ** B` 脱糖成 `Call('tb.dot', [A, B])`（多线程矩阵乘）。
+  - 新增 `_parse_one_dim` / `_parse_bracketed_subscript` 解析单维（索引 `i` 或切片 `a:b[:s]`）与二维下标；`_suffixes` 的 `[` 分支支持 `T[i,j]`→`tensor.get`、`T[a:b,c:d]`→`tensor.slice`；赋值分支支持 `T[i,j] = v`→`tensor.set`，同时保留 `T[i] = v`。
+  - `KEYWORDS` / `LIB_PREFIXES` / `LIB_CALLS` 登记 `tensor` 前缀与 `tensor.get/set/slice/from/to_list`（3/4/5/1/1 参）。
+- **双后端接线**：
+  - C 后端（pybk_code.py）：`LIB_C_NAMES` 把 `tensor.*` 映射到 `rt_tensor_*`（Index→`rt_index` 已张量感知，Slice→`rt_list_slice` 已路由张量到 `rt_tensor_slice`）。
+  - VM 后端（_vm_lib_calls.inc）：登记 5 个 `rt_tensor_*` 并 `G_LIB_CALLS_N` 188→**193**。
+  - `tensor` 不在 `_VM_UNAVAILABLE`，VM 模式可用（已实测）。
+
+#### 验证（双后端一致 + 无回归）
+- 探针 `build_tmp/probe_tensor.pybk` / `probe_tensor2.pybk` 在 VM（`pybk_build.py -r`）与 C（`pybk_main.py`）两后端输出**逐字一致**：
+  - `M = tensor.from([[1,2,3],[4,5,6],[7,8,9]])` → 矩阵打印 `1 2 3 / 4 5 6 / 7 8 9`。
+  - `M[1,2]`=6；`M[0,0]=99` 后 `M[0,0]`=99；`tensor.to_list(M)`=`[[99,2,3],[4,5,6],[7,8,9]]`。
+  - `M[0:2,0:2]` 切片正确；`M[0:2,1:3]`→`2 3 / 5 6`；`tensor.get(M,1,1)`=5。
+  - `A**B`（50×50）、`D**E` 维度/数值正确（脱糖到 `tb.dot`）。
+- 全量回归：`tests/run_tests.py` **113/113 通过**（0 失败，约 292s）；`smokeroor.py` **8/8 通过**（44s），与基线一致——张量改动零回归。
+
+### 1.0.13 —— VM 后端：主派发循环改"真·threaded dispatch"，运行速度 +10%
+
+> 主线：`pyvm.c` 的 `run_module` 主循环原本是 `for(;;){ switch(op){...} }`。解释器圈子里"threaded dispatch / computed goto"是标准加速手法，但实测有两个坑，最终落地的版本是"帧指针存活"那一种。
+
+#### 改动（pyvm.c · run_module 主派发循环）
+- 新增计算跳转派发表 `dispatch_table[256]`（未登记操作码一律跳 `case_default` 报"未知指令"，与原 `default` 行为一致）+ `VM_NEXT()` 宏（`goto *dispatch_table[op]`，顺手做 PC 越界检查）。
+- **关键：帧指针 `f`/`fn` 在派发之间保持"存活"（live）**，只在真正换帧的操作码 `CALL(0x30)` / `RET(0x31)` / `RET_NONE(0x32)` 才 `VM_SET_FRAME()` 重载；普通操作码不再每步都做 `fn = &m.fns[f->fn]` 解引用。
+- 已核验 `g_fp` 在 `pyvm.c` 里只被 CALL/RET/RET_NONE 三处改动，所以"除这三处外 f/fn 保持存活"是安全的。
+- `0x36 (CALL_LIB)` 内部声明了局部 `void *fn = lib_lookup(...)`，会遮蔽外层帧指针 `fn`，整段重命名为 `libfn` 避免冲突。
+- 改造脚本留在 `build_tmp/patch_vm_dispatch.py`（从原始 `pyvm.c` 幂等重写，带断言：label 数==操作码数、`VM_NEXT()` 数==非return-case+default+入口、`VM_SET_FRAME()` 数==4）。
+
+#### 踩坑（实测结论，别再走弯路）
+- **"安全版" threaded（每个 dispatch 都重载 f/fn）在 -O2 下是 0.99× 白忙**：GCC `-O2` 已经把密集 `switch(op)` 编译成跳转表（indirect jump），与 computed goto 等价，派发本就不是瓶颈。
+- **只有"帧指针存活"那版在 -O2 才有真收益**：省掉了每操作码一次的 `&m.fns[f->fn]` 解引用。
+
+#### 验证（速度与正确性）
+- 速度探针 `_speed_test.pybc`（10万次循环 `和 = Σ(i%7)`）：
+  - 原始 switch(-O2)：中位数 **0.2124s**
+  - 真·threaded(-O2)：中位数 **0.1909s** → **1.11× / +10.1%**（最佳 0.1783s vs 0.1897s）
+  - -O0 下同样更快（约 1.06×），debug 构建也受益。
+- 正确性三探针全绿：①库/算术/列表字典/CALL_LIB 探针 [M1]–[M15]+[END] 正确；②速度探针结果 `和 = 299995`（数学正确，旧笔记写的 428569 是错的）；③嵌套 CALL/RET 探针（外→中→里 + 步(n)）与原始 switch **逐字一致**。
+- `tests/run_tests.py` / `smokeroor.py` 走 C 后端，不受影响。
+
+### 1.0.12 —— VM 后端：把"编译能过但跑不起来"的库提前在编译期拒绝 + 修正文档偏差
+
+> 主线：VM 后端（pyvm.exe，终端模式）之前对 `mu`/`音`/`mm`/`net` 等库是"能编译、运行时才报「在 VM 模式下不可用」"，`m3`/`ui`/`http` 更是因没链进 `pyvm.exe` 而直接崩。本次统一改成**编译期就给清晰拒绝**，与 `web`/`game`/`ffi` 行为一致（准反馈）。
+
+#### VM 后端编译期拒绝（pybk_bc.py · compile_call）
+- 新增 `_VM_UNAVAILABLE = ('mu','音','mm','net','m3','ui','http')`：这些前缀在 VM 下没有对应运行时实现，编译即报「库 X() 仅 C 后端（原生模式 F5）支持，VM 后端（终端模式）不支持。请改用原生模式编译。」——不再让用户跑到一半才崩。
+- 实测：原 `mu.stop()` 运行时软失败「标准库 音.停 在 VM 模式下不可用」→ 现编译期即拒绝；`mm.draw_away`/`net.connect`/`m3.count`/`ui.row`/`http.get` 同理。
+- `hw` 不动：它本就靠 `ON 3D_highway` 在前端拦（"hw 模块需要先在文件顶部写 ON 3D_highway"），已是清晰编译期错误。
+
+#### 文档修正（PYBOOK_AI.md，与实测对齐）
+- `调色板`/`palette`：**C → 双**。实测 VM 返回正确颜色 `[255,68,68]`（rt_lib_pal_* 已链入 pyvm.exe），原标注"VM 表无登记"是过时/保守的。
+- `mu` / `音`：统一标 **C**。两者都能编译（音.* 已登记在 LIB_CALLS），但运行时报「在 VM 模式下不可用」——原文档把 `音` 标 C（注释还说"VM 只认 mu.*"）却把 `mu` 标双，互相矛盾，现已对齐为都不可用。
+- `m3`/`ui`/`net`/`http`：维持 C-only 标注（事实正确）。
+
+#### 验证
+- 探针实证：np/tb/mp/te/mt/rd/tm/file/csv/js/bs/smoke/调色板 在 VM 正常出结果；mu/音/mm/net/m3/ui/http 现编译期清晰拒绝；`func`/`lb.` 顶层、`web`/`game`/`ffi` 拒绝行为不变。
+- 全量 `tests/run_tests.py`（C 后端，96/96）+ `smokeroor.py`（8/8）不受影响——两道闸都走 `pybk_main.py`（C 后端），改动只在 `pybk_bc.py`。
+
+### 1.0.11 —— P0：报错三段式全覆盖 + 边角/报错路径回归测试
+
+> 主线：**把"错了什么 + 为什么 + 怎么改"钉进每一个报错**，并补一套锁住"有没有三段式"的回归测试（不锁措辞，措辞可反复改）。对应「真正的壁垒」表里 P0。
+
+#### 报错三段式基础设施
+- `PybkError.__init__` 自动给每条报错追加上 `hint_for(msg)` 的「为什么：/怎么改：」后两段——凡是走 `raise PybkError` 的路径（含 codegen 期的宏/类检查）一律带三段式，不再只有手写几处才有。
+- `hint_for` 加守卫：已是三段式的文案不再重复追加；新增动态识别「期望 'NAME'，实际是 'X'」→ 提示 X 是保留字。
+- `_HINTS` 表扩充：字符串未闭合 / 缺少右括号 / 没有属性 / Memoryment 模式 / web 组件非法 / key 键名 / 插值逗号 / magic 颜色缺段 / hw 未 ON / 库无函数 / 宏重复定义 / tm.stop 用法 … 共 30+ 条。
+- 顺手把几处内联文案收敛，避免与 `_HINTS` 重复（`ffi.调用` 已是完整三段式，保持不动）。
+
+#### 回归测试（tests/cases.py）
+- 新增 17 个 P0 报错用例（P0_01~P0_17），全部用 `err_contains` 锁「首行原文 + 有没有三段式」，不锁具体措辞——以后改建议文案不会误伤。
+- 覆盖：Memoryment 越界 / web 非法组件 / go 方向 / key 键名 / 库无函数 / hw 未 ON / magic 缺段或空 / tm.stop / web.块写在 GOING 内 / 宏重名·冲突·参数不符 / 类未定义·属性不存在 / 插值 `$` 后无法解析。
+- 把 3 个原本用精确 `err` 锁死的报错用例（E11 字符串未闭合 / E13 插值逗号 / T06 show 缺括号）改为 `err_contains`，与新机制对齐。
+- 两个既有精确 `err` 用例（T07 magic 缺色段 / T12 函数重复定义）随机制改为 `err_contains`，并修正其断言。
+
+#### 验证
+- 全量 `tests/run_tests.py`：**113/113 无回归**（96 正常路径 + 17 P0 报错路径）。
+
+#### 配套文档
+- 新增 `PYBOOK_规格.md`：PYbook 的形式语法规格（EBNF），无歧义、可照着实现，重点钉死上下文相关消歧规则（`vg.`/`func`/`lb.`/`web.`/`静`/`self`/`ON`/`引用`）。与教程 `语法手册.md` 分工：手册讲「怎么写」，规格讲「什么算合法」。
+- **P2 陌生人起手路径（壁垒表 P2）**：新增 `examples/`（5 个由浅入深、注释详尽、已逐个 `--check` + 实跑验证的示例：`01_你好`→`05_网页页面`，覆盖 变量/函数/列表数学/类对象/网页）与 `examples/README.md` 起手指南（30 秒跑通、第一个程序逐行讲、`func`/`lb.` 必须写在 GOING 之外的关键约定、五例速查、核心心智模型、常见坑、进阶去哪）。散落在仓库根的 `示例_*.pybk` 未动，新示例集中到干净的 `examples/` 目录便于陌生人找。
+
+### 1.0.10 —— VM 字节码后端：补全纯逻辑特性 + 修 C-only 报错误导
+
+> 主线：**让 VM 后端"少误报、多支持"**。旗舰 demo 在 VM 编译挂掉的几处，纯逻辑的补齐，C-only 的给清楚错误，不再误导。
+
+#### 新增：三元表达式 `?:`（纯逻辑，VM 现可编译并运行）
+- `compile_expr` 新增 `Ternary` 分支：`JUMP_IF_FALSE` 跳 else、求值 then、`JUMP` 跳过 else，结果值留栈（与 `and`/`or` 短路同风格）。经 `pyvm.exe` 实测 `(1>0)?10:20` 求值正确。
+
+#### 新增：列表推导 `[expr for x in 列表 if cond]`（纯逻辑，完整支持）
+- 新增 `compile_comp`：复用 around 循环机（`AROUND_INIT`/`AROUND_STEP`）遍历，每轮把元素绑到 `x`，求值 `expr` 并按 `cond` 做 `LIST_APPEND` 到新建结果表。含条件过滤与嵌套推导。实测 `[x*2 for x in 原 if x>2]`、`[list.长度(s) for s in 字]` 均正确。
+
+#### 修复：游戏调用（win/key/hit/clear/color/box/...）报错误导
+- 原：VM 不认识游戏调用，落到「未声明的函数 list.win」误报。
+- 现：检测 `GAME_CALLS`，显式报「游戏调用 win()（需要 3 个实参）仅 C 后端（原生模式 F5）支持，VM 后端（终端模式）不支持」。VM 是终端模式、无窗口/游戏循环，本就不能跑游戏调用。
+
+#### 修复：ffi.* / c.* 底层窗口接口报错误导
+- 原：`ffi.调用("名", 参数...)` 走 `LIB_CALLS` 元数检查，报「需要 1 个实参，给了 N 个」——只字不提仅原生可用。
+- 现：`compile_call` 开头拦截 `ffi.`/`c.` 前缀，显式报「ffi 调用 X() 仅 C 后端（原生模式 F5）支持，VM 后端（终端模式）不支持」。
+
+#### 验证
+- 三元 / 列表推导经 `pyvm.exe` 实测求值正确；原 3 处失败 demo 现行为：纯逻辑正常、C-only 给明确错误。
+- 96/96 + smokeroor 8/8 无回归。
+
+### 1.0.9 —— 大项目管理 Phase 1：工程分析 + CLI + parser 循环依赖死循环修复
+
+> 主线：**大语言必有的独门绝技——大项目管理**。第一版落「项目清单+自动发现」「依赖图+循环检测+缓存」「分模块编译+增量」中的分析层与 CLI（`pybktl.py`）；并修了一个隐藏多年的 parser 死循环 bug。
+
+#### 工程分析层 `pybk_project.py`（纯静态、不碰代码生成）
+- `PYBOOK.toml` 清单：`[project]` 段（英文键 + 兼容中文键）声明 `entry` / `include` / `target` / `cache` / `separate`；`includes` 默认含工程根（绝对路径，避免 `os.walk('.')` 扫整仓）。
+- `load_manifest` → `discover_modules`（递归扫 `*.pybk`，按绝对路径去重）→ `build_graph`（有向依赖边）→ `detect_cycles`（DFS 三色，返回完整环路径）→ `topo_order`（Kahn）。`analyze()` 一站式返回结构化结果。
+
+#### 命令行 `pybktl.py`
+- `pybktl.py deps <toml>`：打印模块依赖图 + 拓扑序（有环 exit 1）。
+- `pybktl.py check <toml>`：循环依赖检测 + 全工程静态语法/语义检查（有环 exit 1）。
+- `pybktl.py build/run <toml>`：把工程扁平镜像到 ASCII 构建目录，复用 `pybk_main` 管线编译并运行（第一版 build 即编译并运行）。
+
+#### 修复：parser 在循环依赖下无限递归（死循环而非报错）
+- 根因：`_preload_module_classes` 解析 `引用("名")` 时递归读并解析被引文件，但 `parse_import` 每次传 `set()`、递归又新建 `_Parser` → 「已访问」集合**跨文件不共享**，一旦 `a↔b` 互引就纯 CPU 空转卡死。
+- 修复：模块级全局 `_PRELOAD_SEEN`；顶层 `parse`/`parse_module` 重置、递归子模块走 `_parse_module_raw`（不重置）、`parse_import` 传全局。复现不对称：`python pybk_project.py <toml>` 卡、`python -c "import pybk_project; ..."` 不卡——因 `_preload_module_classes` 的 `base` 仅在 `sys.argv[1]` 是真实文件时才指向工程目录。
+- 附带：`_load_imports` 加按模块名**去重**（`merged` 集合），菱形/共享依赖（A→B、A→C→B）只合并一次，不再误报「函数重复定义」。
+
+#### 已知边界（后续任务 #74/#75）
+- 跨目录 `引用()` 解析尚未改编译器核心，CLI 用「扁平镜像」绕开（要求工程内模块名不重名）。
+- 分模块独立编译 + 真增量（用户模块 .o 缓存）尚未做，先以扁平镜像 + 现有 exe 缓存过渡。
+
+### 1.0.8 —— 类系统扩展：继承/多态、构造形参+构造体、静态成员/类方法
+
+> 主线：**让 `lb.` 类"够全面"**。三大特性补齐（用户点选），C 后端 + 前端双管线落地，96/96 + smokeroor 8/8 无回归。
+
+#### 继承 + 多态
+
+```pybk
+lb.动物 { func 叫(){ ns.show("动物叫") } }
+lb.狗 : 动物 { func 叫(){ ns.show("狗汪汪") } }   # 覆盖
+lb.猫 : 动物 { }                                  # 继承
+func 喊(o){ o.叫() }                               # 无类型参数也能多态
+```
+
+- 类定义后写 `: 父类` 即继承；子类同名方法覆盖，不写则自动继承父类实现。
+- 多态**运行时**按对象真实类沿继承链向上找最近实现（`rt_parent_of` + `rt_inst_of` + 每方法一个 `rt_disp_<id>` 分发器），**不要求参数/变量声明类型**。
+
+#### 构造函数形参 + 构造体
+
+```pybk
+lb.点(x, y) {
+    vg.x = x; vg.y = y
+    func 构造(){ self.半径 = x + y }   # 构造形参在构造体里可见
+}
+vg.p = lb.点(3, 4)   # p.半径 = 7
+```
+
+- 类定义 `lb.类名(形参,...)` 声明构造形参；`lb.点(3,4)` 按位置传参（也可混 `属性=值` 关键字）。
+- 类体 `func 构造(){...}` 为构造体，属性初始化后自动执行，可直接用构造形参。
+
+#### 静态成员 / 类方法
+
+```pybk
+lb.圆 {
+    静 vg.计数 = 0
+    静 func 加(){ lb.圆.计数 = lb.圆.计数 + 1 }
+}
+lb.圆.加(); ns.show($lb.圆.计数)   # → 1
+```
+
+- `静 vg.字段 = 默认值` 类级静态字段（文件级全局，启动时按默认值初始化）。
+- `静 func 方法(...)` 类方法（无 `self`），用 `lb.类名.字段` / `lb.类名.方法(...)` 访问，实例上取不到。
+
+#### 改动文件
+- `pybk_front.py`：`ClassDef` 扩 `parent/ctor_params/static_fields/static_methods`；新增 `StaticCall`/`StaticRef`/`AssignStatic` 节点；`parse_class` 解析新语法；`stmt()` 支持 `lb.类名.静态方法()` 语句与 `lb.类名.字段 = ...` 赋值。
+- `pybk_code.py`：`gen_dispatchers`（`rt_parent_of`/`rt_inst_of`/`rt_disp_*`）、`gen_method` 支持 `构造` 注入 `ctor_params`、`gen_ctor` 处理位置实参+继承链属性、`gen_class` 生成静态字段全局与 `rt_cls_init_*`、新增 `AssignStatic` 语句分支。
+- 探针 `build_tmp/类扩展测试.pybk` 三特性端到端全 PASS。
+
+### 1.0.7 —— 宏（inline code macro）
+
+> 主线：**编译期代码生成**。批量写重复代码不用再复制粘贴。双管线（C 后端 + VM 后端）共用前端 AST 展开。
+
+#### 宏：编译期内联展开
+
+```pybk
+宏 血条(对象, 屏x, 屏y) {
+    color(220, 40, 40)
+    box(屏x, 屏y, 100 * 对象.血 / 对象.血上限, 8)
+}
+GOING:{ 血条(玩家, 10, 10)  血条(敌1, 220, 10) }STOP
+```
+
+- 语法 `宏 名(参数){...}`；调用 `名(实参)` 在编译期被**原地展开成语句**（不是函数调用、零运行时开销）。
+- **只能当语句调用，不能当表达式取值**；零参也要写 `()`；支持宏套宏；**不支持递归**（栈深守卫报错）。
+- 参数替换是 **AST 深拷贝**（命中形参名的变量 / 下标 / 成员对象 / for 变量 / 被调函数名），避开 C 宏双重求值坑。
+- `引用("模块")` 里定义的宏随 import 一起并入，C / VM 两后端都能用。
+- 错误带三段式：参数个数不符 / 与函数重名 / 重复定义 / 递归，各给 为什么 + 怎么改。
+- 改动：`pybk_front.py`（`宏` 进保留字、`MacroDef` 节点、`parse_macro`、`expand_macros` 共享变换）
+  + `pybk_code.py` / `pybk_bc.py`（import 合并扩为 4 元组 `(fns,inits,classes,macros)` 后展开）
+  + `pybk_main.py` F5 原生路径 + `ide.py`（自动补全识别宏名）。14/14 探针全 PASS（含 C 原生 F5 实跑写盘）。
+
 ## 1.0.6 —— 工具链 LookAround（随包内置 pybktl）+ 多项引擎修复（2026-10-05）
 
 ### 工具链 LookAround：随包内置的文件夹级开发日志循环（本版主菜）
@@ -134,7 +340,7 @@ $ python tools/自检_示例可编译.py
   凡 `LIB_PREFIXES` 里的词（`te mt rd list file tm 音 调色板 mu palette net
   hw np tb mp ui dict js csv mm bs m3 smoke mec`）都不能做成员名或变量名。
 - **`list.创建()` 不存在**：空表写 `[]`（真名是 `list.长度` / `list.添加`）。
-- **张量不能 `[i][j]` 取元素**：要用 `tb.rows/cols/argmax`、`np.sum/mean/max/min` 这类整表接口。
+- **张量现在支持 `T[i,j]` 多维索引 / `T[a:b,c:d]` 二维切片 / `A**B` 矩阵乘**（1.0.14 起，真·VM 对象，双后端通用）。早期版本张量只是 `tb.*` 里的二维列表、不能 `[i][j]`，现已升格为一等类型；仍可用 `tb.rows/cols/argmax`、`np.sum/mean/max/min` 这类整表接口。
 - **`--check` ≠ 能跑**：它只查语法 + 语义，类型/取值类错误要真跑才暴露 ——
   所以示例自检只是第一道闸，冒烟测试（`smokeroor.py`，7/7）是第二道。
 
