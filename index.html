@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>PYbook 1.0.7 · 中文编程入门语言</title>
+<title>PYbook 1.0.8 · 中文编程入门语言</title>
 <style>
   * { margin: 0; padding: 0; box-sizing: border-box; }
   body {
@@ -123,21 +123,21 @@
 <body>
 <div class="card">
   <div class="logo">PYbook</div>
-  <div class="ver">版本 1.0.7</div>
+  <div class="ver">版本 1.0.8</div>
 
   <p class="tag">
     <b>中文编程入门语言</b><br>
     写中文，编译成真正的 C，跑出 60 FPS 的游戏<br>
-    <b>1.0.7 新到</b>：宏 · 类系统（继承 / 多态 / 静态成员）· 张量一等类型（A**B 矩阵乘 / T[i,j] / T[a:b,c:d] 切片）· VM 后端加速 ·
+    <b>1.0.8 新到</b>：图表库接 sym.*（求导 / 切线 / 渐近线 / 定积分图形化）· 顺手逮到 5 个真 bug ·
     <b>工具链 LookAround（随包内置）</b>：改代码自动记开发日志、报错翻中文人话、一键出团队协作报告 ·
     <b>GC 分代 + 增量</b>（@5/@6 不再崩、提速 42 倍）·
     <b>Smokeroor 安全体检</b> ·
     桌面 GUI · 3D OpenGL 着色器 · 15 个前缀库
   </p>
 
-  <a class="dl" href="pybook-1.0.7.zip" download>⬇ 下载完整包</a>
+  <a class="dl" href="pybook-1.0.8.zip" download>⬇ 下载完整包</a>
   <div style="margin-top:18px"><a href="物理实验室.html" style="color:#8be9fd;font-size:15px">🔬 在线体验：物理引擎实验室（鼠标拖滑条 · 按钮生成小球 · 输入名字）</a></div>
-  <div class="meta">pybook-1.0.7.zip · 62.9 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
+  <div class="meta">pybook-1.0.8.zip · 55.0 MB · 解压即用（只需 Python 3.10+ 和 PATH 上的 gcc）</div>
 
   <div class="chips">
     <span class="chip">LookAround 开发日志循环</span>
@@ -213,37 +213,44 @@ rm.aging.while(帧 >= 900 or hw.end()) {
 }
 }STOP</div>
 
-  <div class="code"><span class="c"># 本版新东西（1.0.7）：宏 / 类系统 / 张量一等类型</span>
-宏 打招呼(名){ ns.show(你好，$名！) }      <span class="c"># 编译期内联展开，只能当语句</span>
-
-lb.点 {
-  vg.x = 0
-  vg.y = 0
-  func 右移(){ self.x = self.x + 1; self }   <span class="c"># self 隐式，方法体末值即返回</span>
-}
-vg.p = 点()
-p.右移()
-
-vg.M = tensor.from_list([[1,2],[3,4]])
-vg.N = tensor.from_list([[5,6],[7,8]])
-vg.R = M ** N                  <span class="c"># 矩阵乘，真·VM 张量对象（多线程）</span>
-ns.show(R[0, 1])               <span class="c"># 多维索引（行0，列1）</span></div>
+  <div class="code"><span class="c"># 本版新东西（1.0.8）：图表库接 sym.* —— 导函数 / 切线 / 渐近线 / 定积分图形化</span>
+GOING:{
+    vg.板 = <span class="k">图.画布</span>(640, 480)
+    <span class="k">图.轴</span>(板, -6.283, 6.283, -3, 3, 1, 1, <span class="k">"sin(x) 与它的导函数 cos(x)"</span>)
+    <span class="k">图.曲线</span>(板, <span class="k">"sin(x)"</span>, -6.283, 6.283, <span class="k">"蓝"</span>, 2)   <span class="c"># 原函数</span>
+    <span class="k">图.导数</span>(板, <span class="k">"sin(x)"</span>, <span class="k">"x"</span>, <span class="k">"红"</span>, 2)   <span class="c"># 解析求导 → cos(x)</span>
+    <span class="k">图.切线</span>(板, <span class="k">"sin(x)"</span>, <span class="k">"x"</span>, 1.0, <span class="k">"绿"</span>)   <span class="c"># x=1 处的切线（斜率=cos1）</span>
+    <span class="k">图.渐近线</span>(板, <span class="k">"tan(x)"</span>, <span class="k">"x"</span>, <span class="k">"灰"</span>)   <span class="c"># 探 ±∞ 极限 → y=±π/2</span>
+    <span class="k">图.面积</span>(板, <span class="k">"sin(x)"</span>, <span class="k">"x"</span>, 0, 3.14159, <span class="k">"橙"</span>)   <span class="c"># 定积分 ∫₀^π sin(x)dx = 2</span>
+    <span class="k">图.存</span>(板, <span class="k">"示例_sym.png"</span>)
+}STOP</div>
 
   <div class="shots">
     <img class="big" src="shots/starcore-1.png" alt="PYbook「星核特效」：484 块砖的波动地面、三道自转能量环、中心亮核与力场笼">
     <img src="shots/starcore-2.png" alt="PYbook「星核特效」：粒子池扩散、能量环展开的画面">
     <img src="shots/starcore-3.png" alt="PYbook「星核特效」：粒子围绕星核扩散的画面">
+    <img src="shots/sym_chart.png" alt="PYbook 1.0.8 图表库接 sym.*：sin(x) 的原函数(蓝)/导函数(红)/x=1切线(绿)/atan 水平渐近线(灰)/积分面积(橙)">
   </div>
   <div class="shot-cap">
     「<b>星核特效</b>」是随包附带的 3D 示例（<b>星核特效/星核特效.pybk</b>，双击 <b>星核特效.cmd</b> 直接出窗口）：
     地面 484 块砖逐块按高度场算、三道各 72 段的能量环挂在自转父节点上、中间一颗亮核套着三层互相垂直的力场笼。<br>
     它<b>没用任何着色器、贴图和第三方库</b> —— 粒子是标准库 <b>fancy3d</b>、几何是 <b>hw.box</b> 一块块拼的，
-    运动学全是 PYbook 自己积分出来的。这三张图也是引擎的<b>无头出图</b>功能自动截的
+    运动学全是 PYbook 自己积分出来的。这三张图也是引擎的<b>无头出图</b>功能自动截的<br>
+    「<b>图表库接 sym.*</b>」（1.0.8 新特性）用<b>无头出图</b>截的第四张图：<code>sin(x)</code> 的原函数(蓝)、
+    解析求导得到的导函数(红)、<code>x=1</code> 处的切线(绿)、<code>atan(x)</code> 的水平渐近线(灰)、以及定积分面积(橙)——
+    全部由图库自带求值器与 <code>pybook_sym.c</code> 的解析核心层接通后一次性画出
   </div>
 
   <div class="log">
     <details open>
       <summary>迭代日志 —— 每个版本加了什么</summary>
+      <div class="ver-line">1.0.8 <small>2026-10-18 · 图表库接 sym.*（求导 / 切线 / 渐近线 / 定积分图形化）</small></div>
+      <ul>
+        <li><b>图表库接 sym.*</b>：图库自带求值器与 <code>pybook_sym.c</code> 的解析求导 / 积分 / 极限核心层打通，新增 4 个图元——<code>图.导数</code>（解析求导）、<code>图.切线</code>（指定点切线）、<code>图.渐近线</code>（探 ±∞ 极限）、<code>图.面积</code>（定积分，积不出退自适应辛普森）</li>
+        <li><b>顺手逮到 5 个真 bug</b>：<code>atan2/log10/log2</code> 永远调不到、<code>√x</code> 安静给错数、渐近线两侧同值报两次、同一错误两套措辞、前端 <code>scan_raw</code> 把字符串里的括号算进配平（影响 <code>ns.show</code>/<code>big</code>/<code>mid</code>/<code>web.*</code>）</li>
+        <li><b>三个设计选择</b>：求值器按表达式分流不换引擎、变量名不用另外传、四个新图元绝不自己定值域（只在已有坐标系内作画，没坐标系先报错）</li>
+        <li>全量验证：图表库接入验证 C/VM 各 46/46、负例 16/16、反向验证 9/9、图表库回归 C/VM 各 93/93、Smokeroor 8/8 与基线一致、<code>gcc -Wall -Wextra</code> 0 错 0 警告</li>
+      </ul>
       <div class="ver-line">1.0.7 <small>2026-10-08 · 宏 / 类系统 / 张量一等类型 / VM 后端加速</small></div>
       <ul>
         <li><b>宏（编译期内联）</b>：<code>宏 名(参数){...}</code> 在编译期展开，专治「小操作反复写、调用又有开销」。只当语句用、不支持递归</li>
